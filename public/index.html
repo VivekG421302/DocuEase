@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DocuEase – Document Automator</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">📄</span>
+        <div>
+          <div class="logo-title">DocuEase</div>
+          <div class="logo-sub">Document Automator</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" data-page="new">➕ New Document</button>
+        <button class="nav-btn" data-page="library">📚 My Templates</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <main class="main">
+
+    <!-- ════ PAGE: NEW DOCUMENT ════ -->
+    <div id="page-new" class="page active">
+
+      <!-- Step 1: Upload Template -->
+      <section class="card" id="step1">
+        <div class="step-badge">Step 1 of 3</div>
+        <h2 class="card-title">Upload Your Word Template</h2>
+        <p class="card-desc">Select a <strong>.docx</strong> file that contains placeholders like <code>{name}</code>, <code>{date}</code>, <code>{address}</code>.</p>
+
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">📂</div>
+          <div class="upload-text">Click to choose your .docx file</div>
+          <div class="upload-hint">or drag and drop here</div>
+          <input type="file" id="file-input" accept=".docx" hidden />
+        </div>
+
+        <div class="file-chosen hidden" id="file-chosen">
+          <span class="file-icon">✅</span>
+          <span id="file-chosen-name">filename.docx</span>
+          <button class="btn-small" id="file-change">Change</button>
+        </div>
+
+        <div class="mode-select">
+          <div class="mode-label">What do you need?</div>
+          <div class="mode-buttons">
+            <button class="mode-btn active" data-mode="single">
+              <span class="mode-icon">👤</span>
+              <span class="mode-text">Single Document</span>
+              <span class="mode-desc">Fill in one form</span>
+            </button>
+            <button class="mode-btn" data-mode="bulk">
+              <span class="mode-icon">📊</span>
+              <span class="mode-text">Bulk from CSV</span>
+              <span class="mode-desc">Many documents at once</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="save-template-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="save-template" checked />
+            <span>Save this template to My Library for reuse</span>
+          </label>
+          <div class="template-name-row hidden" id="template-name-row">
+            <label class="field-label" for="template-name">Template Name</label>
+            <input type="text" id="template-name" class="field-input" placeholder="e.g. Rental Agreement" />
+          </div>
+        </div>
+
+        <button class="btn-primary btn-full" id="btn-scan">
+          🔍 Scan for Fields &amp; Continue
+        </button>
+      </section>
+
+      <!-- Step 2a: Single Form -->
+      <section class="card hidden" id="step2-single">
+        <div class="step-badge">Step 2 of 3</div>
+        <h2 class="card-title">Fill in the Details</h2>
+        <p class="card-desc">We found these fields in your document. Fill them in below.</p>
+
+        <div id="single-form-fields">
+          <!-- Dynamically generated -->
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" id="btn-back-single">← Back</button>
+          <button class="btn-primary" id="btn-generate-single">
+            ✨ Generate Documents
+          </button>
+        </div>
+      </section>
+
+      <!-- Step 2b: Bulk CSV Upload -->
+      <section class="card hidden" id="step2-bulk">
+        <div class="step-badge">Step 2 of 3</div>
+        <h2 class="card-title">Upload Your CSV File</h2>
+
+        <div class="fields-detected" id="bulk-fields-info">
+          <!-- Fields shown here -->
+        </div>
+
+        <p class="card-desc">Your CSV file must have these exact column headers:<br>
+          <span class="fields-required" id="bulk-fields-required"></span>
+        </p>
+
+        <div class="upload-zone" id="csv-upload-zone">
+          <div class="upload-icon">📊</div>
+          <div class="upload-text">Click to choose your .csv file</div>
+          <input type="file" id="csv-input" accept=".csv" hidden />
+        </div>
+
+        <div class="file-chosen hidden" id="csv-file-chosen">
+          <span class="file-icon">✅</span>
+          <span id="csv-file-name">data.csv</span>
+          <button class="btn-small" id="csv-file-change">Change</button>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" id="btn-back-bulk">← Back</button>
+          <button class="btn-primary" id="btn-generate-bulk">
+            ✨ Generate All Documents
+          </button>
+        </div>
+      </section>
+
+      <!-- Step 3: Downloads -->
+      <section class="card hidden" id="step3">
+        <div class="step-badge">Step 3 of 3</div>
+        <h2 class="card-title">Your Documents Are Ready! 🎉</h2>
+        <p class="card-desc" id="step3-desc">Download your generated files below.</p>
+
+        <div class="download-grid" id="download-grid">
+          <!-- Download buttons injected here -->
+        </div>
+
+        <div class="btn-row" style="margin-top: 2rem;">
+          <button class="btn-secondary" id="btn-start-over">🔄 Start Over</button>
+          <button class="btn-primary" id="btn-go-library">📚 View My Library</button>
+        </div>
+      </section>
+
+    </div><!-- /page-new -->
+
+    <!-- ════ PAGE: LIBRARY ════ -->
+    <div id="page-library" class="page hidden">
+      <div class="library-header">
+        <h2 class="card-title">📚 My Saved Templates</h2>
+        <p class="card-desc">Click a template to use it again — single or bulk.</p>
+      </div>
+
+      <div id="library-loading" class="loading-msg">Loading your templates…</div>
+      <div id="library-empty" class="empty-msg hidden">
+        <div class="empty-icon">📂</div>
+        <div>No templates saved yet.</div>
+        <button class="btn-primary" style="margin-top:1rem" id="btn-go-new">Upload Your First Template</button>
+      </div>
+
+      <div id="library-grid" class="library-grid hidden">
+        <!-- Template cards injected here -->
+      </div>
+    </div><!-- /page-library -->
+
+    <!-- ════ PAGE: LIBRARY TEMPLATE USE ════ -->
+    <div id="page-use-template" class="page hidden">
+      <button class="btn-back-lib" id="btn-back-to-library">← Back to Library</button>
+
+      <div class="card" id="use-template-header">
+        <h2 class="card-title" id="use-template-title">Template Name</h2>
+        <p class="card-desc">Fields: <span id="use-template-fields-list"></span></p>
+        <div class="mode-select">
+          <div class="mode-label">How would you like to use this template?</div>
+          <div class="mode-buttons">
+            <button class="mode-btn active" data-usemode="single">
+              <span class="mode-icon">👤</span>
+              <span class="mode-text">Single Document</span>
+            </button>
+            <button class="mode-btn" data-usemode="bulk">
+              <span class="mode-icon">📊</span>
+              <span class="mode-text">Bulk from CSV</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single use form -->
+      <div class="card" id="use-single-form">
+        <h2 class="card-title">Fill in the Details</h2>
+        <div id="use-single-fields"></div>
+        <div class="btn-row">
+          <button class="btn-primary" id="btn-use-generate-single">✨ Generate Documents</button>
+        </div>
+      </div>
+
+      <!-- Bulk CSV upload -->
+      <div class="card hidden" id="use-bulk-form">
+        <h2 class="card-title">Upload Your CSV</h2>
+        <p class="card-desc">Required columns: <span id="use-bulk-fields-required"></span></p>
+        <div class="upload-zone" id="use-csv-zone">
+          <div class="upload-icon">📊</div>
+          <div class="upload-text">Click to choose your .csv file</div>
+          <input type="file" id="use-csv-input" accept=".csv" hidden />
+        </div>
+        <div class="file-chosen hidden" id="use-csv-chosen">
+          <span class="file-icon">✅</span>
+          <span id="use-csv-name">data.csv</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" id="btn-use-generate-bulk">✨ Generate All</button>
+        </div>
+      </div>
+
+      <!-- Download results -->
+      <div class="card hidden" id="use-downloads">
+        <h2 class="card-title">Your Documents Are Ready! 🎉</h2>
+        <div class="download-grid" id="use-download-grid"></div>
+        <div class="btn-row" style="margin-top:2rem">
+          <button class="btn-secondary" id="btn-use-again">🔄 Use Again</button>
+          <button class="btn-secondary" id="btn-use-back-lib">← Back to Library</button>
+        </div>
+      </div>
+
+    </div><!-- /page-use-template -->
+
+  </main>
+
+  <!-- ══════════ TOAST & LOADER ══════════ -->
+  <div id="toast" class="toast hidden"></div>
+  <div id="loader-overlay" class="loader-overlay hidden">
+    <div class="loader-box">
+      <div class="spinner"></div>
+      <div class="loader-msg" id="loader-msg">Processing…</div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
