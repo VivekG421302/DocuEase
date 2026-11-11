@@ -44,11 +44,37 @@ const upload = multer({
   },
 });
 
-// ─── MongoDB ──────────────────────────────────────────────────────────────────
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err.message));
+// ─── MongoDB (lazy + cached so it works in serverless environments) ──────────
+let dbPromise = null;
+function connectDb() {
+  if (!process.env.MONGODB_URI) {
+    return Promise.reject(new Error("MONGODB_URI is not set."));
+  }
+  if (!dbPromise) {
+    dbPromise = mongoose
+      .connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 8000 })
+      .then((m) => {
+        console.log("✅ Connected to MongoDB Atlas");
+        return m;
+      })
+      .catch((err) => {
+        dbPromise = null; // allow retry on next request
+        throw err;
+      });
+  }
+  return dbPromise;
+}
+
+// Middleware for routes that need the database
+async function withDb(req, res, next) {
+  try {
+    await connectDb();
+    next();
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err.message);
+    res.status(500).json({ error: "Database connection failed: " + err.message });
+  }
+}
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
@@ -65,7 +91,7 @@ app.get("/api/health", (req, res) => {
  * Upload a new .docx template, extract fields, save to Telegram + MongoDB.
  * Body: multipart with field "template" (.docx) and "name" (string)
  */
-app.post("/api/upload", upload.single("template"), async (req, res) => {
+app.post("/api/upload", withDb, upload.single("template"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No .docx file uploaded." });
@@ -117,7 +143,7 @@ app.post("/api/upload", upload.single("template"), async (req, res) => {
  * GET /api/templates
  * List all saved templates
  */
-app.get("/api/templates", async (req, res) => {
+app.get("/api/templates", withDb, async (req, res) => {
   try {
     const templates = await Template.find({})
       .sort({ createdAt: -1 })
@@ -132,7 +158,7 @@ app.get("/api/templates", async (req, res) => {
  * GET /api/templates/:id
  * Get a single template's metadata
  */
-app.get("/api/templates/:id", async (req, res) => {
+app.get("/api/templates/:id", withDb, async (req, res) => {
   try {
     const template = await Template.findById(req.params.id);
     if (!template) return res.status(404).json({ error: "Template not found." });
@@ -146,7 +172,7 @@ app.get("/api/templates/:id", async (req, res) => {
  * DELETE /api/templates/:id
  * Delete a template from the library
  */
-app.delete("/api/templates/:id", async (req, res) => {
+app.delete("/api/templates/:id", withDb, async (req, res) => {
   try {
     await Template.findByIdAndDelete(req.params.id);
     res.json({ success: true });
@@ -160,7 +186,7 @@ app.delete("/api/templates/:id", async (req, res) => {
  * Generate a single filled DOCX + PDF from a saved template.
  * Body: { templateId, data: { field1: val1, ... } }
  */
-app.post("/api/generate/single", async (req, res) => {
+app.post("/api/generate/single", withDb, async (req, res) => {
   try {
     const { templateId, data } = req.body;
 
@@ -232,7 +258,7 @@ app.post(
  * Generate bulk DOCX + PDF from saved template + CSV.
  * Body: multipart with "csv" file and "templateId" field
  */
-app.post("/api/generate/bulk", upload.single("csv"), async (req, res) => {
+app.post("/api/generate/bulk", withDb, upload.single("csv"), async (req, res) => {
   try {
     const { templateId } = req.body;
 
@@ -334,8 +360,14 @@ app.post("/api/scan", upload.single("template"), async (req, res) => {
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🚀 DocuEase running at http://localhost:${PORT}`);
-});
+// On Vercel the app is imported by api/index.js and must not call listen().
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 DocuEase running at http://localhost:${PORT}`);
+    connectDb().catch((err) =>
+      console.error("❌ MongoDB connection error:", err.message)
+    );
+  });
+}
 
-
+module.exports = app;
