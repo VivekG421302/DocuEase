@@ -65,17 +65,25 @@ function fillTemplate(docxBuffer, data) {
 
 /**
  * Convert a .docx buffer to PDF buffer using libreoffice-convert.
+ * Returns null (instead of throwing) when LibreOffice is not available,
+ * e.g. on Vercel, so the app can still deliver the .docx.
  * @param {Buffer} docxBuffer
- * @returns {Promise<Buffer>} - PDF as Buffer
+ * @returns {Promise<Buffer|null>} - PDF as Buffer, or null if unavailable
  */
 async function convertToPdf(docxBuffer) {
-  // Dynamically require to avoid startup crash if LibreOffice isn't installed
-  const libre = require("libreoffice-convert");
-  const { promisify } = require("util");
-  const libreConvert = promisify(libre.convert);
-
-  const pdfBuffer = await libreConvert(docxBuffer, ".pdf", undefined);
-  return pdfBuffer;
+  if (process.env.DISABLE_PDF === "true" || process.env.VERCEL) {
+    return null;
+  }
+  try {
+    // Dynamically require to avoid startup crash if LibreOffice isn't installed
+    const libre = require("libreoffice-convert");
+    const { promisify } = require("util");
+    const libreConvert = promisify(libre.convert);
+    return await libreConvert(docxBuffer, ".pdf", undefined);
+  } catch (err) {
+    console.warn("PDF conversion unavailable:", err.message);
+    return null;
+  }
 }
 
 /**
@@ -98,7 +106,7 @@ function parseCsv(csvBuffer) {
  * @param {Buffer} templateBuffer
  * @param {Object[]} rows
  * @param {string} baseName - Base name for output files
- * @returns {Promise<{docxZipBuffer: Buffer, pdfZipBuffer: Buffer}>}
+ * @returns {Promise<{docxZipBuffer: Buffer, pdfZipBuffer: Buffer|null}>}
  */
 async function buildBulkZips(templateBuffer, rows, baseName) {
   const docxBuffers = [];
@@ -113,12 +121,14 @@ async function buildBulkZips(templateBuffer, rows, baseName) {
     docxBuffers.push({ name: `${safeLabel}_${i + 1}.docx`, buffer: filledDocx });
 
     const pdfBuffer = await convertToPdf(filledDocx);
-    pdfBuffers.push({ name: `${safeLabel}_${i + 1}.pdf`, buffer: pdfBuffer });
+    if (pdfBuffer) {
+      pdfBuffers.push({ name: `${safeLabel}_${i + 1}.pdf`, buffer: pdfBuffer });
+    }
   }
 
   // Pack docx zip
   const docxZipBuffer = await packZip(docxBuffers);
-  const pdfZipBuffer = await packZip(pdfBuffers);
+  const pdfZipBuffer = pdfBuffers.length ? await packZip(pdfBuffers) : null;
 
   return { docxZipBuffer, pdfZipBuffer };
 }

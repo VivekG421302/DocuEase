@@ -389,7 +389,11 @@ function showDownloads(genData, type) {
     });
 
     grid.appendChild(docxBtn);
-    grid.appendChild(pdfBtn);
+    if (genData.pdf) {
+      grid.appendChild(pdfBtn);
+    } else {
+      $("step3-desc").textContent = "Your filled Word document is ready. (PDF is not available on this server.)";
+    }
   } else {
     $("step3-desc").textContent = `Generated ${genData.count} documents. Download both zip files below.`;
 
@@ -402,7 +406,11 @@ function showDownloads(genData, type) {
     });
 
     grid.appendChild(docxZipBtn);
-    grid.appendChild(pdfZipBtn);
+    if (genData.pdfZip) {
+      grid.appendChild(pdfZipBtn);
+    } else {
+      $("step3-desc").textContent = `Generated ${genData.count} documents. (PDF is not available on this server.)`;
+    }
   }
 
   hide("step2-single");
@@ -630,16 +638,20 @@ function showUseDownloads(genData, type) {
       downloadBase64(genData.docx, `${genData.fileName}_filled.docx`,
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     }));
-    grid.appendChild(makeDownloadBtn("Download PDF", "📋", "pdf", () => {
-      downloadBase64(genData.pdf, `${genData.fileName}_filled.pdf`, "application/pdf");
-    }));
+    if (genData.pdf) {
+      grid.appendChild(makeDownloadBtn("Download PDF", "📋", "pdf", () => {
+        downloadBase64(genData.pdf, `${genData.fileName}_filled.pdf`, "application/pdf");
+      }));
+    }
   } else {
     grid.appendChild(makeDownloadBtn(`Download ${genData.count} Word Files (.zip)`, "📦", "zip-docx", () => {
       downloadBase64(genData.docxZip, `${genData.fileName}_docx_files.zip`, "application/zip");
     }));
-    grid.appendChild(makeDownloadBtn(`Download ${genData.count} PDF Files (.zip)`, "📦", "zip-pdf", () => {
-      downloadBase64(genData.pdfZip, `${genData.fileName}_pdf_files.zip`, "application/zip");
-    }));
+    if (genData.pdfZip) {
+      grid.appendChild(makeDownloadBtn(`Download ${genData.count} PDF Files (.zip)`, "📦", "zip-pdf", () => {
+        downloadBase64(genData.pdfZip, `${genData.fileName}_pdf_files.zip`, "application/zip");
+      }));
+    }
   }
 
   show("use-downloads");

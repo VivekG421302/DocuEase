@@ -187,7 +187,7 @@ app.post("/api/generate/single", async (req, res) => {
     res.json({
       success: true,
       docx: filledDocx.toString("base64"),
-      pdf: pdfBuffer.toString("base64"),
+      pdf: pdfBuffer ? pdfBuffer.toString("base64") : null,
       fileName: template.originalFileName.replace(".docx", ""),
     });
   } catch (err) {
@@ -217,7 +217,7 @@ app.post(
       res.json({
         success: true,
         docx: filledDocx.toString("base64"),
-        pdf: pdfBuffer.toString("base64"),
+        pdf: pdfBuffer ? pdfBuffer.toString("base64") : null,
         fileName: req.file.originalname.replace(".docx", ""),
       });
     } catch (err) {
@@ -264,7 +264,7 @@ app.post("/api/generate/bulk", upload.single("csv"), async (req, res) => {
     res.json({
       success: true,
       docxZip: docxZipBuffer.toString("base64"),
-      pdfZip: pdfZipBuffer.toString("base64"),
+      pdfZip: pdfZipBuffer ? pdfZipBuffer.toString("base64") : null,
       count: rows.length,
       fileName: template.name,
     });
@@ -305,7 +305,7 @@ app.post(
       res.json({
         success: true,
         docxZip: docxZipBuffer.toString("base64"),
-        pdfZip: pdfZipBuffer.toString("base64"),
+        pdfZip: pdfZipBuffer ? pdfZipBuffer.toString("base64") : null,
         count: rows.length,
         fileName: templateFile.originalname.replace(".docx", ""),
       });
