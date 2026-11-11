@@ -92,54 +92,13 @@
 
 ---
 
-## Step 5 — Install LibreOffice on Render (for PDF conversion)
+## Step 5 — LibreOffice (PDF conversion) on Render
 
-Render's free instances run Ubuntu and support LibreOffice. Add this to your **Build Command**:
-
-```
-apt-get install -y libreoffice && npm install
-```
-
-> **Note:** If Render does not allow `apt-get` in the build command, create a `render.yaml` file in your project root:
-
-```yaml
-services:
-  - type: web
-    name: docuease
-    env: node
-    buildCommand: npm install
-    startCommand: npm start
-    envVars:
-      - key: MONGODB_URI
-        sync: false
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
-      - key: TELEGRAM_CHAT_ID
-        sync: false
-    dockerfilePath: ./Dockerfile
-```
-
-And create a `Dockerfile`:
-
-```dockerfile
-FROM node:20-slim
-
-# Install LibreOffice for PDF conversion
-RUN apt-get update && apt-get install -y \
-    libreoffice \
-    --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm install --production
-COPY . .
-
-EXPOSE 3000
-CMD ["node", "server.js"]
-```
-
-Then push this to GitHub and Render will use Docker automatically.
+The repo includes a `Dockerfile` (installs LibreOffice) and a `render.yaml`.
+When creating the Render service, choose **Docker** as the runtime (or use
+**New → Blueprint** and point it at the repo). No build/start command is
+needed — the Dockerfile handles both. Add the environment variables from
+Step 4 in the Render dashboard.
 
 ---
 
@@ -150,6 +109,38 @@ Then push this to GitHub and Render will use Docker automatically.
 3. Fill in the form and click **Generate Documents**
 4. Download your filled `.docx` and `.pdf`
 5. Check your Telegram chat — you should see the template file was saved there
+
+---
+
+## Alternative — Deploy on Vercel (Word output only)
+
+Vercel cannot run LibreOffice, so on Vercel the app returns the filled
+**.docx only** (PDF buttons are hidden automatically). Everything else works.
+
+1. Push this repo to GitHub, then **Add New → Project** in Vercel and import it.
+2. Leave the framework preset as **Other**. No build command is needed.
+3. Add the environment variables `MONGODB_URI`, `TELEGRAM_BOT_TOKEN`,
+   `TELEGRAM_CHAT_ID` under **Settings → Environment Variables**.
+4. In MongoDB Atlas → Network Access, allow `0.0.0.0/0` (Vercel IPs change).
+5. Deploy.
+
+Limits to know about: Vercel functions accept request bodies up to ~4.5 MB and
+return responses up to ~4.5 MB (generated files are sent base64-encoded, which
+adds ~33%), so large templates or big CSV batches should use the Render
+deployment instead.
+
+To get PDFs *and* the Vercel UI, host this repo on Render (Docker) and use that
+URL instead, or point a Vercel frontend at the Render backend.
+
+Running locally without LibreOffice? Set `DISABLE_PDF=true` in `.env`.
+
+---
+
+## Security
+
+**Never commit `.env`.** It is listed in `.gitignore`. If credentials were ever
+pushed to GitHub, treat them as compromised: rotate the MongoDB user password
+and revoke the Telegram bot token (BotFather → `/revoke`).
 
 ---
 
